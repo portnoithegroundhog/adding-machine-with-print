@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ten-Key Adding Machine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { background-color: #f3f4f6; font-family: sans-serif; }
+        .mono { font-family: monospace; }
+        
+        @media print {
+            .no-print { display: none; }
+            body { background: white; padding: 0; }
+            .w-full { border: none; shadow: none; }
+            #tape { height: auto; overflow: visible; background: white; }
+        }
+    </style>
+</head>
+<body class="p-4 flex flex-col items-center">
+
+    <div class="w-full max-w-md bg-gray-800 rounded-2xl shadow-2xl border-4 border-gray-700 overflow-hidden">
+        <div class="bg-gray-900 px-4 py-2 flex justify-between items-center border-b border-gray-700 no-print">
+            <input type="text" id="filename" class="bg-transparent text-gray-400 text-xs mono uppercase w-full outline-none" value="TAPE_LOG">
+            <div class="flex gap-2">
+                <button onclick="window.print()" class="text-blue-400"><i data-lucide="printer" class="w-5 h-5"></i></button>
+                <button onclick="clearAll()" class="text-red-400"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+            </div>
+        </div>
+
+        <div id="tape" class="h-64 bg-gray-200 m-3 rounded-sm overflow-y-auto p-3 mono text-xs text-gray-800 flex flex-col gap-1">
+            <div class="text-gray-400 text-center mt-20 italic">--- Feed Paper ---</div>
+        </div>
+
+        <div class="px-4 py-2 bg-black flex flex-col items-end">
+            <div id="running-total" class="text-emerald-400 text-[10px] mono">Running Total: 0.00</div>
+            <div id="display" class="text-white text-4xl mono">0.00</div>
+        </div>
+
+        <div class="p-4 grid grid-cols-4 gap-2 no-print">
+            <button onclick="clearAll()" class="h-12 bg-red-900 text-white rounded font-bold">AC</button>
+            <button onclick="backspace()" class="h-12 bg-gray-700 text-white rounded font-bold"><i data-lucide="delete" class="w-5 h-5 mx-auto"></i></button>
+            <button id="repeat-btn" onclick="setMultiply()" class="col-span-2 h-12 bg-gray-700 text-white rounded font-bold uppercase text-xs">Repeat (×)</button>
+            
+            <button onclick="digit('7')" class="h-12 bg-white rounded font-bold">7</button>
+            <button onclick="digit('8')" class="h-12 bg-white rounded font-bold">8</button>
+            <button onclick="digit('9')" class="h-12 bg-white rounded font-bold">9</button>
+            <button onclick="operate('-')" class="h-12 bg-gray-700 text-orange-400 rounded font-bold">-</button>
+
+            <button onclick="digit('4')" class="h-12 bg-white rounded font-bold">4</button>
+            <button onclick="digit('5')" class="h-12 bg-white rounded font-bold">5</button>
+            <button onclick="digit('6')" class="h-12 bg-white rounded font-bold">6</button>
+            <button onclick="operate('+')" class="row-span-2 h-full bg-orange-500 text-white rounded font-bold">ENTER<br>(+)</button>
+
+            <button onclick="digit('1')" class="h-12 bg-white rounded font-bold">1</button>
+            <button onclick="digit('2')" class="h-12 bg-white rounded font-bold">2</button>
+            <button onclick="digit('3')" class="h-12 bg-white rounded font-bold">3</button>
+
+            <button onclick="digit('0')" class="col-span-2 h-12 bg-white rounded font-bold">0</button>
+            <button onclick="digit('.')" class="h-12 bg-white rounded font-bold">.</button>
+        </div>
+    </div>
+
+    <script>
+        let val = "0.00", tape = [], mult = null, isNew = true;
+        function digit(d) { 
+            if(isNew) { val = d === "." ? "0." : d; isNew = false; } 
+            else if(!(d === "." && val.includes("."))) val += d;
+            document.getElementById('display').innerText = val;
+        }
+        function backspace() { val = val.length > 1 ? val.slice(0, -1) : "0"; isNew = val === "0"; document.getElementById('display').innerText = val; }
+        function setMultiply() { mult = parseFloat(val); isNew = true; document.getElementById('repeat-btn').classList.replace('bg-gray-700', 'bg-orange-600'); }
+        function clearAll() { tape = []; mult = null; val = "0.00"; isNew = true; render(); }
+        function operate(sym) {
+            let n = parseFloat(val);
+            if(mult) {
+                for(let i=0; i<Math.floor(mult); i++) tape.push({s: sym, v: n});
+                tape.push({s: "×", v: n, label: Math.floor(mult) + "x"}); mult = null; document.getElementById('repeat-btn').classList.replace('bg-orange-600', 'bg-gray-700');
+            } else tape.push({s: sym, v: n});
+            isNew = true; render();
+        }
+        function render() {
+            let t = 0, html = "", sub = 0;
+            tape.forEach(l => {
+                if(l.s !== "×") { sub += (l.s === "+" ? l.v : -l.v); t += (l.s === "+" ? l.v : -l.v); }
+                html += `<div class="flex justify-between"><span>${l.label || l.s + " " + l.v.toFixed(2)}</span><span>${l.s === "×" ? "" : sub.toFixed(2)}</span></div>`;
+            });
+            document.getElementById('tape').innerHTML = html || '<div class="text-gray-400 text-center mt-20 italic">--- Feed Paper ---</div>';
+            document.getElementById('display').innerText = t.toFixed(2);
+            document.getElementById('running-total').innerText = "Running Total: " + t.toFixed(2);
+            lucide.createIcons();
+        }
+        lucide.createIcons();
+    </script>
+</body>
+</html>
